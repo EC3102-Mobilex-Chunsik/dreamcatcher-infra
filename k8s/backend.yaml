@@ -1,0 +1,113 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+    dash.ulagbulag.io/subject: mobilex-exp
+spec:
+  selector:
+    matchLabels:
+      app: backend
+      dash.ulagbulag.io/subject: mobilex-exp
+  template:
+    metadata:
+      labels:
+        app: backend
+        dash.ulagbulag.io/subject: mobilex-exp
+    spec:
+      containers:
+        - name: server
+          # TODO(user): change to your image
+          image: shg0592/mobilex-dreamcatcher-backend:v0.0.1
+          # example mobilex image) quay.io/ulagbulag/mobilex-exp-backend:v0.7
+          # our image) shg0592/mobilex-dreamcatcher-backend:v0.0.1 (change version)
+          env:
+            - name: BASE_URL
+              value: /api/v1
+            # for OpenAI API
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai
+                  key: OPENAI_API_KEY
+            # for PostgreSQL database
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DB_PASSWORD
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DB_NAME
+          ports:
+            - name: http
+              protocol: TCP
+              containerPort: 8000
+      #     volumeMounts:
+      #       - name: huggingface-hub-token
+      #         mountPath: /root/.cache/huggingface/token
+      #         subPath: token
+      # volumes:
+      #   - name: huggingface-hub-token
+      #     secret:
+      #       secretName: huggingface-hub
+      #       items:
+      #         - key: HUGGING_FACE_HUB_TOKEN
+      #           path: token
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  labels:
+    app: backend
+    dash.ulagbulag.io/subject: mobilex-exp
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+--- # for OpenAI API
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openai
+stringData:
+  # TODO(user): change your own token!
+  OPENAI_API_KEY: "your-openai-api-key"
+--- # for PostgreSQL database
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+# type: Opaque
+stringData:
+  # TODO(user): change your own db info!
+  DB_USER: "your-db-user"
+  DB_PASSWORD: "your-db-password"
+  DB_HOST: "your-db-host"
+  DB_PORT: "your-db-port"
+  DB_NAME: "your-db-name"

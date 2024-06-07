@@ -1,0 +1,33 @@
+backend:
+  image: shg0592/mobilex-dreamcatcher-backend:v0.0.7 # 버전 맞게 설정
+  port: 8000
+  replicas: 1
+  strategy: RollingUpdate
+
+frontend:
+  enabled: true # false로 설정 시 프엔 제외 helm install
+  image: crown31/mobilex-dreamcatcher-frontend:v1.0.1 # 버전 맞게 설정
+  port: 3000 # 8501
+  replicas: 1
+  strategy: RollingUpdate
+
+database:
+  # Database에 접근할 때는 Backend에 주입되는 다음 ENV를 사용
+  # : DB_USER, DB_PASSWORD, DB_NAME, DB_HOST, DB_PORT
+  # DB_PASSWORD, OPENAI_API_KEY는 Secret으로 따로 관리
+  image: postgres:16.2
+  port: 5432
+  replicas: 1
+  strategy: Recreate
+  username: chunsik
+  dbname: dreamdb
+
+nginx:
+  # TA Note: Nginx은 미리 다음과 같이 설정되어 있다.
+  # - Frontend 접근 시: 별도 prefix 없음
+  # - Backend 접근 시: /api prefix 사용
+  # 변경하려면 차트에서 손을 보아야 한다.
+  image: nginx:1.25.5
+  port: 80
+  replicas: 1
+  strategy: RollingUpdate

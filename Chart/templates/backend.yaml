@@ -1,0 +1,83 @@
+{{- $component_type := "backend" }}
+{{- with (get .Values $component_type) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $component_type }}
+  {{/* {{ $.Release.Name }}-{{ $component_type }} */}}
+  labels:
+    {{- include "common_labels" (list $ $component_type) | nindent 4 }}
+spec:
+  replicas: {{ .replicas }}
+  strategy:
+    type: {{ .strategy }}
+  selector:
+    matchLabels:
+      {{- include "common_labels" (list $ $component_type) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "common_labels" (list $ $component_type) | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ $component_type }}
+          image: {{ .image }}
+          imagePullPolicy: Always
+{{/*      command:
+            - "gunicorn"
+            - "-w=8"
+            - "-b=0.0.0.0:{{ .port }}"
+            - "--access-logfile=-"
+            - "main:app"  */}}
+          env:
+            # base url
+            - name: BASE_URL
+              value: /api/v1
+            # for OpenAI API
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai
+                  key: OPENAI_API_KEY
+            # for database
+            - name: DB_USER # DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-database
+                  key: username
+            - name: DB_PASSWORD # DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-database
+                  key: password
+            - name: DB_NAME # DATABASE_DBNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-database
+                  key: dbname
+            - name: DB_HOST # DATABASE_HOST
+              value: database
+              {{/* {{ $.Release.Name }}-database */}}
+            - name: DB_PORT # DATABASE_PORT
+              value: "{{ $.Values.database.port }}"
+          ports:
+            - containerPort: {{ .port }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $component_type }}
+  {{/* {{ $.Release.Name }}-{{ $component_type }} */}}
+  labels:
+    {{- include "common_labels" (list $ $component_type) | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "common_labels" (list $ $component_type) | nindent 4 }}
+  ports:
+    - protocol: TCP
+      port: {{ .port }}
+      targetPort: {{ .port }}
+      name: http
+---
+{{- end -}}
